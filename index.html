@@ -3,120 +3,432 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vista Estadio Fernando Valenzuela (Dynamic)</title>
+    <title>Visualizador Estadio Fernando Valenzuela (Clima en Vivo)</title>
     <style>
+        :root {
+            --naranjero-orange: #E67E22;
+            --naranjero-dark: #D35400;
+            --charcoal-black: #1A252F;
+            --bg-light: #F8F9FA;
+            --text-dark: #2C3E50;
+            --border-color: #E2E8F0;
+            --white: #FFFFFF;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
-            color: #333;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
             margin: 0;
             padding: 20px;
             display: flex;
             justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        .contenedor {
-            display: flex;
-            gap: 40px;
-            max-width: 1000px;
+
+        .container {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 30px;
+            max-width: 1200px;
             width: 100%;
-            background: white;
+            background: var(--white);
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
         }
-        /* Estilos del Mapa */
-        .seccion-mapa {
-            flex: 1;
+
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
         }
-        .seccion-estadio {
-            transition: all 0.3s ease;
-            cursor: pointer;
-            stroke: #fff;
-            stroke-width: 2;
-        }
-        .seccion-estadio:hover {
-            fill: #F39C12; /* Color Naranjero al pasar el ratón */
-            opacity: 0.8;
-        }
-        .activo {
-            fill: #E67E22 !important;
-            stroke: #333;
-        }
-        /* Estilos de la Tarjeta de Información */
-        .seccion-info {
-            flex: 1;
+
+        /* Columna Izquierda: Mapa */
+        .map-section {
             display: flex;
             flex-direction: column;
+            gap: 15px;
         }
-        .tarjeta {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            overflow: hidden;
-            display: none; 
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
-        .tarjeta img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-            background-color: #eee;
+
+        .header-section h1 {
+            font-size: 1.6rem;
+            color: var(--charcoal-black);
+            margin: 0 0 5px 0;
+            font-weight: 700;
         }
-        .tarjeta-contenido {
-            padding: 20px;
+
+        .header-section p {
+            color: #7F8C8D;
+            margin: 0;
+            font-size: 0.9rem;
         }
-        .tarjeta h2 {
-            margin: 0 0 10px 0;
-            color: #d35400;
-        }
-        .etiqueta {
-            display: inline-block;
-            background: #eee;
-            padding: 5px 10px;
-            border-radius: 20px;
+
+        /* Widget de Clima en Tiempo Real */
+        .weather-widget {
+            background: #EDF2F7;
+            padding: 10px 15px;
+            border-radius: 10px;
             font-size: 0.85rem;
-            margin-bottom: 15px;
-            margin-right: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #2D3748;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        #mensaje-inicial {
+
+        .weather-icon {
+            font-size: 1.5rem;
+        }
+
+        .controls-bar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--naranjero-orange);
+        }
+
+        .clear-btn {
+            padding: 10px 15px;
+            background-color: #E2E8F0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            transition: background-color 0.2s;
+        }
+
+        .clear-btn:hover {
+            background-color: #CBD5E1;
+        }
+
+        /* Contenedor del Mapa SVG */
+        .svg-container {
+            background-color: #F8FAFC;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .stadium-svg {
+            width: 100%;
+            height: auto;
+            max-height: 480px;
+        }
+
+        /* Polígonos de Asientos interactivos */
+        .seccion-estadio {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            stroke: #FFFFFF;
+            stroke-width: 1.5;
+            fill-opacity: 0.75;
+        }
+
+        /* Colores iniciales */
+        .sec-color-blue { fill: #2980b9; }
+        .sec-color-yellow { fill: #f1c40f; }
+        .sec-color-purple { fill: #9b59b6; }
+        .sec-color-red { fill: #e74c3c; }
+        .sec-color-grey { fill: #7f8c8d; }
+        .sec-color-green { fill: #27ae60; }
+
+        .seccion-estadio:hover {
+            fill: var(--naranjero-orange) !important;
+            fill-opacity: 0.95;
+            filter: drop-shadow(0px 0px 4px rgba(0,0,0,0.2));
+        }
+
+        .activo {
+            fill: var(--naranjero-dark) !important;
+            fill-opacity: 1 !important;
+            stroke: #000000;
+            stroke-width: 2.5;
+            filter: drop-shadow(0px 2px 6px rgba(0,0,0,0.3));
+        }
+
+        /* Leyendas */
+        .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px;
+            background: #F8FAFC;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* Columna Derecha: Tarjeta de Info */
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .placeholder-card {
             text-align: center;
-            color: #7f8c8d;
-            margin-top: 50px;
+            color: #7F8C8D;
+            padding: 50px 20px;
+            border: 2px dashed #CBD5E1;
+            border-radius: 12px;
+            background-color: #FAFAFA;
+            margin: auto 0;
         }
-        /* Estado de carga */
-        .cargando {
-            opacity: 0.5;
-            pointer-events: none;
+
+        .placeholder-card h2 {
+            color: var(--charcoal-black);
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        .info-card {
+            display: none;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--white);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .info-card img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border-color);
+            background-color: #E2E8F0;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .card-body h2 {
+            margin: 0 0 12px 0;
+            color: var(--naranjero-dark);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #4A5568;
+            background-color: #EDF2F7;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tag-sun {
+            background-color: #FEF3C7;
+            color: #D97706;
+        }
+
+        .card-body p {
+            line-height: 1.6;
+            color: #4A5568;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .tip-box {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #FFFBEB;
+            border-left: 4px solid #D97706;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.85rem;
+            color: #B45309;
         }
     </style>
 </head>
 <body>
 
-    <div class="contenedor">
-        <div class="seccion-mapa id="mapa-bloque" class="cargando">
-            <h3>Selecciona una zona:</h3>
-            <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-                <path d="M300,350 L200,250 L300,150 L400,250 Z" fill="#27ae60" />
-                <path d="M300,150 Q350,100 450,200 L400,250 Z" fill="#2ecc71" />
-                <path d="M300,150 Q250,100 150,200 L200,250 Z" fill="#2ecc71" />
-                
-                <path id="sec-central" d="M260,370 L340,370 Q370,390 400,380 L200,380 Q230,390 260,370 Z" fill="#3498db" class="seccion-estadio" />
-                <path id="sec-lateral-primera" d="M420,270 L480,210 L510,240 L450,300 Z" fill="#9b59b6" class="seccion-estadio" />
-                <path id="sec-bleachers" d="M220,100 Q300,50 380,100 L420,60 Q300,0 180,60 Z" fill="#e74c3c" class="seccion-estadio" />
-            </svg>
-        </div>
-
-        <div class="seccion-info">
-            <div id="mensaje-inicial">
-                <h2>Cargando datos del estadio...</h2>
-                <p>Por favor espera un momento.</p>
+    <div class="container">
+        <!-- SECCIÓN IZQUIERDA: MAPA INTERACTIVO -->
+        <div class="map-section">
+            <div class="header-section">
+                <div>
+                    <h1>Estadio Fernando Valenzuela</h1>
+                    <p>Ubicación oficial de secciones - Naranjeros de Hermosillo</p>
+                </div>
+                <!-- Widget Clima dinámico -->
+                <div class="weather-widget" id="weather-display">
+                    <span class="weather-icon">☀️</span>
+                    <span id="weather-text">Cargando clima de Hermosillo...</span>
+                </div>
             </div>
 
-            <div id="tarjeta-info" class="tarjeta">
-                <img id="info-imagen" src="" alt="Vista desde el asiento">
-                <div class="tarjeta-contenido">
-                    <h2 id="info-nombre">Nombre de la sección</h2>
-                    <span class="etiqueta" id="info-capacidad">Capacidad: --</span>
-                    <span class="etiqueta" id="info-sol">Sol: --</span>
-                    <p id="info-descripcion">Descripción de la vista irá aquí.</p>
+            <!-- Buscador integrado -->
+            <div class="controls-bar">
+                <input type="text" id="section-search" class="search-input" placeholder="Escribe tu sección de interés (ej. 112, 305)..." />
+                <button id="clear-search" class="clear-btn">Limpiar</button>
+            </div>
+
+            <!-- Contenedor del Mapa SVG con Geometría del Plano Real -->
+            <div class="svg-container">
+                <svg viewBox="0 0 1078 811" class="stadium-svg" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Elementos decorativos del Campo de Béisbol -->
+                    <path d="M 200,280 A 340,340 0 0,1 822,280 L 511,585 Z" fill="#2E7D32" fill-opacity="0.2" />
+                    <path d="M 341,455 A 170,170 0 0,1 681,455 L 511,585 Z" fill="#DFB175" fill-opacity="0.75" />
+                    <path d="M 381,455 A 130,130 0 0,1 641,455 L 511,555 Z" fill="#2E7D32" fill-opacity="0.35" />
+                    <line x1="511" y1="585" x2="190" y2="265" stroke="#FFFFFF" stroke-width="2.5" />
+                    <line x1="511" y1="585" x2="832" y2="265" stroke="#FFFFFF" stroke-width="2.5" />
+                    <circle cx="511" cy="460" r="10" fill="#DFB175" stroke="#FFFFFF" stroke-width="1.5" />
+                    <circle cx="511" cy="585" r="15" fill="#DFB175" stroke="#FFFFFF" stroke-width="1.5" />
+
+                    <!-- SECCIONES INTERACTIVAS GENERADAS -->
+                    <g id="capa-bleachers">
+                        <polygon id="sec-bleachers-izq" class="seccion-estadio sec-color-green" points="163,222 195,199 229,179 265,162 303,149 342,141 382,137 422,137 462,142 502,151 503,101 457,94 411,92 365,95 319,102 274,113 231,130 190,150 152,174 117,203" data-section="bleachers-izq" />
+                        <polygon id="sec-bleachers-der" class="seccion-estadio sec-color-green" points="519,152 559,144 599,140 639,141 679,146 718,156 756,170 791,188 824,210 854,235 904,196 871,170 834,148 794,129 751,114 706,104 659,97 611,94 564,95 517,101" data-section="bleachers-der" />
+                    </g>
+                    
+                    <g id="capa-200">
+                        <polygon id="sec-201" class="seccion-estadio sec-color-grey" points="814,296 813,310 813,310 862,309 862,295" data-section="201" />
+                        <polygon id="sec-202" class="seccion-estadio sec-color-grey" points="812,319 813,329 813,329 862,328 861,318" data-section="202" />
+                        <polygon id="sec-203" class="seccion-estadio sec-color-grey" points="813,338 812,349 812,349 861,348 862,337" data-section="203" />
+                        <polygon id="sec-204" class="seccion-estadio sec-color-grey" points="208,350 207,339 207,339 158,340 159,351" data-section="204" />
+                        <polygon id="sec-205" class="seccion-estadio sec-color-grey" points="208,330 207,320 207,320 158,321 159,331" data-section="205" />
+                        <polygon id="sec-206" class="seccion-estadio sec-color-grey" points="208,311 207,297 207,297 158,298 159,312" data-section="206" />
+                    </g>
+
+                    <g id="capa-300">
+                        <polygon id="sec-301" class="seccion-estadio sec-color-grey" points="833,313 831,343 831,343 881,341 883,311" data-section="301" />
+                        <polygon id="sec-302" class="seccion-estadio sec-color-grey" points="830,348 812,390 812,390 862,389 880,347" data-section="302" />
+                        <polygon id="sec-303" class="seccion-estadio sec-color-grey" points="810,396 756,456 756,456 804,458 858,397" data-section="303" />
+                        <polygon id="sec-304" class="seccion-estadio sec-color-grey" points="752,462 696,512 696,512 741,518 798,467" data-section="304" />
+                        <polygon id="sec-305" class="seccion-estadio sec-color-grey" points="692,517 635,557 635,557 675,568 733,526" data-section="305" />
+                        <polygon id="sec-306" class="seccion-estadio sec-color-grey" points="630,561 511,589 511,589 511,643 668,612" data-section="306" />
+                        <polygon id="sec-307" class="seccion-estadio sec-color-grey" points="511,589 392,561 392,561 354,612 511,643" data-section="307" />
+                        <polygon id="sec-308" class="seccion-estadio sec-color-grey" points="387,557 330,517 330,517 289,526 347,568" data-section="308" />
+                        <polygon id="sec-309" class="seccion-estadio sec-color-grey" points="326,512 270,462 270,462 224,467 281,518" data-section="309" />
+                        <polygon id="sec-310" class="seccion-estadio sec-color-grey" points="266,456 212,396 212,396 164,397 218,458" data-section="310" />
+                        <polygon id="sec-311" class="seccion-estadio sec-color-grey" points="210,390 192,348 192,348 142,347 160,389" data-section="311" />
+                    </g>
+
+                    <g id="capa-100">
+                        <polygon id="sec-101" class="seccion-estadio sec-color-blue" points="791,261 757,260 726,290 725,310 789,307" data-section="101" />
+                        <polygon id="sec-102" class="seccion-estadio sec-color-blue" points="727,316 728,354 774,356 791,355 790,318" data-section="102" />
+                        <polygon id="sec-103" class="seccion-estadio sec-color-blue" points="726,363 725,387 790,404 789,362" data-section="103" />
+                        <polygon id="sec-104" class="seccion-estadio sec-color-blue" points="722,392 708,413 757,452 787,414" data-section="104" />
+                        <polygon id="sec-105" class="seccion-estadio sec-color-yellow" points="702,417 676,449 727,488 753,458 753,456" data-section="105" />
+                        <polygon id="sec-106" class="seccion-estadio sec-color-yellow" points="674,454 650,481 696,522 699,523 723,492 682,460 678,455" data-section="106" />
+                        <polygon id="sec-107" class="seccion-estadio sec-color-yellow" points="643,490 619,519 666,557 670,558 694,527 649,493" data-section="107" />
+                        <polygon id="sec-108" class="seccion-estadio sec-color-purple" points="613,524 591,548 590,551 638,596 664,562" data-section="108" />
+                        <polygon id="sec-109" class="seccion-estadio sec-color-purple" points="589,555 573,567 573,569 608,623 630,605 631,606 630,604 633,601" data-section="109" />
+                        <polygon id="sec-110" class="seccion-estadio sec-color-red" points="577,585 572,586 558,593 558,597 574,642 593,633 602,626" data-section="110" />
+                        <polygon id="sec-111" class="seccion-estadio sec-color-red" points="551,594 547,594 529,601 528,603 531,651 564,644 567,642 554,599" data-section="111" />
+                        <polygon id="sec-112" class="seccion-estadio sec-color-red" points="500,602 494,654 525,655 527,653 523,608 524,604 522,602 523,601" data-section="112" />
+                        <polygon id="sec-113" class="seccion-estadio sec-color-red" points="469,596 454,646 487,651 490,626 492,623 491,619 493,617 493,600" data-section="113" />
+                        <polygon id="sec-114" class="seccion-estadio sec-color-red" points="444,583 428,604 415,625 436,637 449,642 465,592" data-section="114" />
+                        <polygon id="sec-115" class="seccion-estadio sec-color-purple" points="434,556 430,557 388,598 396,611 408,622 411,622 447,568" data-section="115" />
+                        <polygon id="sec-116" class="seccion-estadio sec-color-purple" points="409,524 358,566 382,597 429,552" data-section="116" />
+                        <polygon id="sec-117" class="seccion-estadio sec-color-yellow" points="381,490 327,529 334,539 355,562 403,520" data-section="117" />
+                        <polygon id="sec-118" class="seccion-estadio sec-color-yellow" points="349,451 300,491 321,521 327,522 325,524 329,518 376,484" data-section="118" />
+                        <polygon id="sec-119" class="seccion-estadio sec-color-yellow" points="319,416 270,452 294,487 333,457 334,454 343,449 342,445" data-section="119" />
+                        <polygon id="sec-120" class="seccion-estadio sec-color-blue" points="301,390 236,415 264,451 266,451 314,412 312,406" data-section="120" />
+                        <polygon id="sec-121" class="seccion-estadio sec-color-blue" points="234,402 235,404 299,382 300,380 298,359 235,360" data-section="121" />
+                        <polygon id="sec-122" class="seccion-estadio sec-color-blue" points="235,315 233,355 300,352 298,315" data-section="122" />
+                        <polygon id="sec-123" class="seccion-estadio sec-color-blue" points="234,262 232,308 298,308 300,295 298,289 271,260 255,259" data-section="123" />
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Leyenda oficial basada en colores del plano -->
+            <div class="legend-container">
+                <div class="legend-item"><span class="legend-color" style="background-color: #e74c3c;"></span> Palco Central Club (110-114)</div>
+                <div class="legend-item"><span class="legend-color" style="background-color: #9b59b6;"></span> Palcos Laterales (108-109, 115-116)</div>
+                <div class="legend-item"><span class="legend-color" style="background-color: #f1c40f;"></span> Preferencia Numerada (105-107, 117-119)</div>
+                <div class="legend-item"><span class="legend-color" style="background-color: #2980b9;"></span> Lateral General (101-104, 120-123)</div>
+                <div class="legend-item"><span class="legend-color" style="background-color: #7f8c8d;"></span> Preferencias / Platea Alta (200 / 300)</div>
+                <div class="legend-item"><span class="legend-color" style="background-color: #27ae60;"></span> Bleachers (Jardines)</div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DERECHA: TARJETA DE INFORMACIÓN CON CONTEXTO CLIMÁTICO -->
+        <div class="info-section">
+            <div id="welcome-message" class="placeholder-card">
+                <h2>Vista desde el Asiento</h2>
+                <p>Haz clic en cualquier sección del mapa o utiliza la barra de búsqueda para explorar los detalles visuales y recomendaciones.</p>
+            </div>
+
+            <div id="data-card" class="info-card">
+                <img id="card-image" src="" alt="Perspectiva del juego">
+                <div class="card-body">
+                    <h2 id="card-title">Sección 112</h2>
+                    
+                    <div class="tags-container">
+                        <span class="tag" id="card-capacity">Aforo: -</span>
+                        <span class="tag tag-sun" id="card-sun">Sol</span>
+                    </div>
+
+                    <p id="card-description">Descripción de la vista...</p>
+                    
+                    <div class="tip-box" id="weather-recommendation">
+                        <strong>💡 Recomendación del Clima:</strong> Cargando sugerencia inteligente según el clima de Hermosillo...
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,123 +436,256 @@
 
     <script>
         // ==========================================
-        // CONFIGURACIÓN: PEGA AQUÍ TU ENLACE CSV
+        // 1. CONFIGURACIÓN BACKEND GOOGLE SHEETS (OPCIONAL)
         // ==========================================
-        const URL_HOJA_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-mcbGirsiy1FulMFbt0sb03gzEFM6dkQRdo74GDqyGXwxCHSFwlJMJC2J_I8LVmLcUieicru1OiFA/pub?gid=0&single=true&output=csv';
+        // Si tienes una hoja pública, pega tu URL CSV aquí. Si se deja vacía, usará la base de datos local de abajo.
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-mcbGirsiy1FulMFbt0sb03gzEFM6dkQRdo74GDqyGXwxCHSFwlJMJC2J_I8LVmLcUieicru1OiFA/pub?gid=0&single=true&output=csv"; 
 
-        let baseDeDatos = {};
+        // Base de Datos Estática (Fallback si no hay Google Sheets configurado)
+        let stadiumData = {
+            "sec-101": { "nombre": "Lateral General - Sección 101", "capacidad_aprox": "500 personas", "exposicion_sol": "Sol directo de tarde ☀️", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+101+-+Lateral", "descripcion_vista": "Vista baja desde el extremo de Primera Base. Excelente ángulo para seguir los hits hacia el jardín derecho." },
+            "sec-102": { "nombre": "Lateral General - Sección 102", "capacidad_aprox": "500 personas", "exposicion_sol": "Sol directo de tarde ☀️", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+102+-+Lateral", "descripcion_vista": "Ubicación ideal de primera base. Ofrece cercanía para observar jugadas y tiros hacia el jardín derecho." },
+            "sec-103": { "nombre": "Lateral General - Sección 103", "capacidad_aprox": "500 personas", "exposicion_sol": "Sol directo de tarde ☀️", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+103+-+Lateral", "descripcion_vista": "Sección baja cercana a la zona de foul externa. Gran visibilidad del corredor en la antesala." },
+            "sec-104": { "nombre": "Lateral General - Sección 104", "capacidad_aprox": "500 personas", "exposicion_sol": "Sol directo de tarde ☀️", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+104+-+Lateral", "descripcion_vista": "Entrada directa a la primera base, con un gran panorama del cuadro de juego." },
+            "sec-105": { "nombre": "Preferencia Numerada - Sección 105", "capacidad_aprox": "450 personas", "exposicion_sol": "Sol directo los primeros innings ☀️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+105+-+Pref.+Numerada", "descripcion_vista": "Asientos numerados muy cómodos cerca del dugout naranjero. Gran ambiente familiar." },
+            "sec-106": { "nombre": "Preferencia Numerada - Sección 106", "capacidad_aprox": "450 personas", "exposicion_sol": "Sol directo los primeros innings ☀️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+106+-+Pref.+Numerada", "descripcion_vista": "Excelente punto de vista lateral. Sombra oportuna en los últimos innings." },
+            "sec-107": { "nombre": "Preferencia Numerada - Sección 107", "capacidad_aprox": "450 personas", "exposicion_sol": "Sol directo los primeros innings ☀️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+107+-+Pref.+Numerada", "descripcion_vista": "Ubicada en zona intermedia, excelente perspectiva de lanzamientos y bateos sesgados." },
+            "sec-108": { "nombre": "Palco Lateral - Sección 108", "capacidad_aprox": "300 personas", "exposicion_sol": "Sol de frente hasta las 6:30 PM ☀️", "imagen_url": "https://placehold.co/600x400/8e44ad/ffffff?text=Seccion+108+-+Palco+Lateral", "descripcion_vista": "Ubicado directamente detrás del dugout de Naranjeros. Escucha y vive el juego junto con los jugadores de casa." },
+            "sec-109": { "nombre": "Palco Lateral - Sección 109", "capacidad_aprox": "300 personas", "exposicion_sol": "Sol de frente hasta las 6:30 PM ☀️", "imagen_url": "https://placehold.co/600x400/8e44ad/ffffff?text=Seccion+109+-+Palco+Lateral", "descripcion_vista": "Pegado al círculo de espera. Estás a pasos del home plate y la banca de los Naranjeros." },
+            "sec-110": { "nombre": "Palco Central Club - Sección 110", "capacidad_aprox": "250 personas", "exposicion_sol": "Sombra garantizada todo el juego ⛅", "imagen_url": "https://placehold.co/600x400/c0392b/ffffff?text=Seccion+110+-+Home+Plate", "descripcion_vista": "Zona exclusiva de butacas acolchadas detrás de home. Máxima comodidad con servicio de alimentos en tu lugar." },
+            "sec-111": { "nombre": "Palco Central Club - Sección 111", "capacidad_aprox": "250 personas", "exposicion_sol": "Sombra garantizada todo el juego ⛅", "imagen_url": "https://placehold.co/600x400/c0392b/ffffff?text=Seccion+111+-+Home+Plate", "descripcion_vista": "Vista privilegiada sobre la trayectoria de los lanzamientos y jugadas defensivas." },
+            "sec-112": { "nombre": "Palco Central Club - Sección 112", "capacidad_aprox": "250 personas", "exposicion_sol": "Sombra garantizada todo el juego ⛅", "imagen_url": "https://placehold.co/600x400/c0392b/ffffff?text=Seccion+112+-+Home+Plate", "descripcion_vista": "El centro del estadio. Perspectiva directa del lanzador, catcher y bateador. Ubicación VIP." },
+            "sec-113": { "nombre": "Palco Central Club - Sección 113", "capacidad_aprox": "250 personas", "exposicion_sol": "Sombra garantizada todo el juego ⛅", "imagen_url": "https://placehold.co/600x400/c0392b/ffffff?text=Seccion+113+-+Home+Plate", "descripcion_vista": "Área exclusiva pegada a la zona de tercera base con excelente sombra y comodidad." },
+            "sec-114": { "nombre": "Palco Central Club - Sección 114", "capacidad_aprox": "250 personas", "exposicion_sol": "Sombra garantizada todo el juego ⛅", "imagen_url": "https://placehold.co/600x400/c0392b/ffffff?text=Seccion+114+-+Home+Plate", "descripcion_vista": "Ubicación excepcional cercana al dugout visitante con sombra ininterrumpida." },
+            "sec-115": { "nombre": "Palco Lateral - Sección 115", "capacidad_aprox": "300 personas", "exposicion_sol": "Sombra rápida al caer la tarde 🌤️", "imagen_url": "https://placehold.co/600x400/8e44ad/ffffff?text=Seccion+115+-+Palco+Lateral", "descripcion_vista": "Detrás de la banca visitante. Sombra desde temprano en partidos de tarde." },
+            "sec-116": { "nombre": "Palco Lateral - Sección 116", "capacidad_aprox": "300 personas", "exposicion_sol": "Sombra rápida al caer la tarde 🌤️", "imagen_url": "https://placehold.co/600x400/8e44ad/ffffff?text=Seccion+116+-+Palco+Lateral", "descripcion_vista": "En la esquina caliente de tercera base. Gran cercanía para ver jugadas defensivas de infield." },
+            "sec-117": { "nombre": "Preferencia Numerada - Sección 117", "capacidad_aprox": "450 personas", "exposicion_sol": "Sombra oportuna al iniciar el juego 🌤️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+117+-+Pref.+Numerada", "descripcion_vista": "Asiento numerado en zona lateral de tercera base. Solución ideal contra el calor vespertino." },
+            "sec-118": { "nombre": "Preferencia Numerada - Sección 118", "capacidad_aprox": "450 personas", "exposicion_sol": "Sombra oportuna al iniciar el juego 🌤️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+118+-+Pref.+Numerada", "descripcion_vista": "Zonas muy frescas recomendadas para juegos con temperaturas cálidas." },
+            "sec-119": { "nombre": "Preferencia Numerada - Sección 119", "capacidad_aprox": "450 personas", "exposicion_sol": "Sombra oportuna al iniciar el juego 🌤️", "imagen_url": "https://placehold.co/600x400/f1c40f/333333?text=Seccion+119+-+Pref.+Numerada", "descripcion_vista": "Muy cerca de la línea del jardín izquierdo. Excelente sombra para la tarde sonorense." },
+            "sec-120": { "nombre": "Lateral General - Sección 120", "capacidad_aprox": "500 personas", "exposicion_sol": "Sombra excelente al anochecer 🌙", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+120+-+Lateral", "descripcion_vista": "Muy fresco y ventilado, excelente para relajarse y disfrutar los innings sin calor." },
+            "sec-121": { "nombre": "Lateral General - Sección 121", "capacidad_aprox": "500 personas", "exposicion_sol": "Sombra excelente al anochecer 🌙", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+121+-+Lateral", "descripcion_vista": "Asientos laterales con rápida salida hacia la explanada principal." },
+            "sec-122": { "nombre": "Lateral General - Sección 122", "capacidad_aprox": "500 personas", "exposicion_sol": "Sombra excelente al anochecer 🌙", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+122+-+Lateral", "descripcion_vista": "Ubicación junto al jardín izquierdo, ideal para disfrutar del clima agradable de la noche." },
+            "sec-123": { "nombre": "Lateral General - Sección 123", "capacidad_aprox": "500 personas", "exposicion_sol": "Sombra excelente al anochecer 🌙", "imagen_url": "https://placehold.co/600x400/2980b9/ffffff?text=Seccion+123+-+Lateral", "descripcion_vista": "Esquina del graderío izquierdo. Gran perspectiva de los cuadrangulares que caen en esa área." },
+            "sec-306": { "nombre": "Preferencia General - Sección 306", "capacidad_aprox": "650 personas", "exposicion_sol": "Sombra asegurada desde el inicio ⛅", "imagen_url": "https://placehold.co/600x400/7f8c8d/ffffff?text=Seccion+306+-+Preferencia+Alta", "descripcion_vista": "Ubicación alta y completamente centrada. Visión panorámica perfecta de todo el estadio con un presupuesto muy accesible." },
+            "sec-bleachers-izq": { "nombre": "Bleachers Jardín Izquierdo (LF)", "capacidad_aprox": "1,500 personas", "exposicion_sol": "Sombra rápida y clima fresco 🍃", "imagen_url": "https://placehold.co/600x400/27ae60/ffffff?text=Bleachers+Izquierdo", "descripcion_vista": "Zona muy divertida e informal. Ideal para atrapar jonrones con el guante listo." },
+            "sec-bleachers-der": { "nombre": "Bleachers Jardín Derecho (RF)", "capacidad_aprox": "1,500 personas", "exposicion_sol": "Sol directo de frente de tarde ☀️", "imagen_url": "https://placehold.co/600x400/27ae60/ffffff?text=Bleachers+Derecho", "descripcion_vista": "Zona muy festiva de los jardines con música y porra en vivo. Requiere protección solar temprana." }
+        };
 
-        // Referencias a elementos del DOM
-        const mapaBloque = document.getElementById('mapa-bloque');
-        const zonasEstadio = document.querySelectorAll('.seccion-estadio');
-        const tarjetaInfo = document.getElementById('tarjeta-info');
-        const mensajeInicial = document.getElementById('mensaje-inicial');
-        
-        const uiNombre = document.getElementById('info-nombre');
-        const uiImagen = document.getElementById('info-imagen');
-        const uiCapacidad = document.getElementById('info-capacidad');
-        const uiSol = document.getElementById('info-sol');
-        const uiDescripcion = document.getElementById('info-descripcion');
-
-        // Función robusta para procesar el texto CSV respetando comillas
-        function procesarCSV(texto) {
-            const lineas = [];
-            let fila = [""];
-            let dentroDeComillas = false;
-
-            for (let i = 0; i < texto.length; i++) {
-                const caracter = texto[i];
-                const siguiente = texto[i + 1];
-
-                if (caracter === '"') {
-                    if (dentroDeComillas && siguiente === '"') {
-                        fila[fila.length - 1] += '"';
-                        i++; 
-                    } else {
-                        dentroDeComillas = !dentroDeComillas;
-                    }
-                } else if (caracter === ',' && !dentroDeComillas) {
-                    fila.push('');
-                } else if ((caracter === '\r' || caracter === '\n') && !dentroDeComillas) {
-                    if (caracter === '\r' && siguiente === '\n') { i++; }
-                    lineas.push(fila);
-                    fila = [''];
-                } else {
-                    fila[fila.length - 1] += caracter;
-                }
-            }
-            if (fila.length > 1 || fila[0] !== '') { lineas.push(fila); }
-            
-            const resultado = {};
-            if (lineas.length < 2) return resultado;
-
-            // Omitimos la fila 0 (encabezados) y recorremos los registros
-            for (let i = 1; i < lineas.length; i++) {
-                const r = lineas[i];
-                if (r.length < 6) continue; // Ignora líneas incompletas
-                
-                const idZona = r[0].trim();
-                resultado[idZona] = {
-                    nombre: r[1],
-                    capacidad_aprox: r[2],
-                    exposicion_sol: r[3],
-                    imagen_url: r[4],
-                    descripcion_vista: r[5]
+        // Relleno automático para secciones faltantes (Serie 300 / 200) para garantizar que todo funcione
+        for (let s = 301; s <= 311; s++) {
+            if (!stadiumData["sec-" + s]) {
+                stadiumData["sec-" + s] = {
+                    "nombre": "Preferencia Alta - Sección " + s,
+                    "capacidad_aprox": "650 personas",
+                    "exposicion_sol": s >= 307 ? "Sombra temprana 🌤️" : "Sol poniente de inicio ☀️",
+                    "imagen_url": "https://placehold.co/600x400/7f8c8d/ffffff?text=Seccion+" + s + "+-+Preferencia",
+                    "descripcion_vista": "Sección del anillo superior que otorga una excelente visión global de la jugada táctica y el fildeo."
                 };
             }
-            return resultado;
+        }
+        for (let s = 201; s <= 206; s++) {
+            stadiumData["sec-" + s] = {
+                "nombre": "Platea Alta - Sección " + s,
+                "capacidad_aprox": "180 personas",
+                "exposicion_sol": s >= 204 ? "Sombra rápida 🌤️" : "Sol directo de tarde ☀️",
+                "imagen_url": "https://placehold.co/600x400/16a085/ffffff?text=Seccion+" + s + "+-+Platea",
+                "descripcion_vista": "Zona intermedia sumamente cómoda en el segundo nivel de palcos con servicios exclusivos cercanos."
+            };
         }
 
-        // Conexión asíncrona con la "API" de Google Sheets
-        async function inicializarAplicacion() {
+        // ==========================================
+        // 2. ELEMENTOS DEL DOM E INTERACCIONES
+        // ==========================================
+        const sections = document.querySelectorAll('.seccion-estadio');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const dataCard = document.getElementById('data-card');
+        const cardImage = document.getElementById('card-image');
+        const cardTitle = document.getElementById('card-title');
+        const cardCapacity = document.getElementById('card-capacity');
+        const cardSun = document.getElementById('card-sun');
+        const cardDescription = document.getElementById('card-description');
+        const searchInput = document.getElementById('section-search');
+        const clearBtn = document.getElementById('clear-search');
+        const weatherRecommendation = document.getElementById('weather-recommendation');
+
+        // Estado del clima para Hermosillo
+        let currentTemp = 28; // fallback inicial
+        let currentHumidity = 40; // fallback inicial
+
+        // ==========================================
+        // 3. CARGA DE GOOGLE SHEETS EN TIEMPO REAL
+        // ==========================================
+        async function loadGoogleSheetsData() {
+            if (!GOOGLE_SHEET_CSV_URL) return; // Si no hay url de Sheet, usa la base estática.
+            
             try {
-                const respuesta = await fetch(URL_HOJA_CSV);
-                if (!respuesta.ok) throw new Error("Error en la descarga de datos");
+                const response = await fetch(GOOGLE_SHEET_CSV_URL);
+                const csvText = await response.text();
                 
-                const textoCSV = await respuesta.text();
-                baseDeDatos = procesarCSV(textoCSV);
-
-                // Cambiar el mensaje inicial tras una carga exitosa
-                mensajeInicial.innerHTML = `<h2>Haz clic en una sección del mapa</h2><p>La vista desde el asiento aparecerá aquí.</p>`;
-                mapaBloque.classList.remove('cargando');
-
-                // Habilitar los eventos de clic
-                configurarEventosMapa();
+                // Parser de CSV simple
+                const lines = csvText.split('\n');
+                if (lines.length <= 1) return;
+                
+                const parsedData = {};
+                const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i]) continue;
+                    
+                    // Separar por comas respetando celdas con comillas
+                    const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(cell => cell.trim().replace(/"/g, ''));
+                    if (row.length < headers.length) continue;
+                    
+                    const id = row[0]; // ej: sec-112
+                    if (id) {
+                        parsedData[id] = {
+                            "nombre": row[1] || "",
+                            "capacidad_aprox": row[2] || "",
+                            "exposicion_sol": row[3] || "",
+                            "imagen_url": row[4] || "https://placehold.co/600x400?text=Sin+Imagen",
+                            "descripcion_vista": row[5] || ""
+                        };
+                    }
+                }
+                
+                if (Object.keys(parsedData).length > 0) {
+                    stadiumData = parsedData;
+                    console.log("Datos de Google Sheets cargados exitosamente.");
+                }
             } catch (error) {
-                console.error("Detalles del error:", error);
-                mensajeInicial.innerHTML = `<h2 style="color: #c0392b;">Error de conexión</h2><p>No se pudieron obtener los datos desde Google Sheets. Revisa la configuración de uso compartido.</p>`;
+                console.error("No se pudo conectar a Google Sheets. Utilizando base de datos local.", error);
             }
         }
 
-        // Lógica de interactividad del mapa
-        function configurarEventosMapa() {
-            zonasEstadio.forEach(zona => {
-                zona.addEventListener('click', function() {
-                    zonasEstadio.forEach(z => z.classList.remove('activo'));
-                    this.classList.add('activo');
-
-                    const idZona = this.getAttribute('id');
-                    const datos = baseDeDatos[idZona];
-
-                    if (datos) {
-                        mensajeInicial.style.display = 'none';
-                        tarjetaInfo.style.display = 'block';
-
-                        uiNombre.textContent = datos.nombre;
-                        uiImagen.src = datos.imagen_url || 'https://placehold.co/600x400?text=Sin+Imagen';
-                        uiImagen.alt = "Vista desde " + datos.nombre;
-                        uiCapacidad.textContent = "Aforo: " + datos.capacidad_aprox;
-                        uiSol.textContent = "Sol: " + datos.exposicion_sol;
-                        uiDescripcion.textContent = datos.descripcion_vista;
-                    } else {
-                        console.warn(`No se encontraron datos en el CSV para el id_zona: "${idZona}"`);
-                    }
-                });
-            });
+        // ==========================================
+        // 4. INTEGRACIÓN DE CLIMA EN VIVO (OPEN-METEO)
+        // ==========================================
+        async function fetchHermosilloWeather() {
+            // Coordenadas del Estadio Fernando Valenzuela en Hermosillo
+            const lat = 29.0730;
+            const lon = -110.9559;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.current) {
+                    currentTemp = Math.round(data.current.temperature_2m);
+                    currentHumidity = Math.round(data.current.relative_humidity_2m);
+                    const weatherCode = data.current.weather_code;
+                    
+                    // Elegir icono dinámico según código de la OMM
+                    let icon = "☀️";
+                    if (weatherCode >= 1 && weatherCode <= 3) icon = "🌤️";
+                    else if (weatherCode > 3) icon = "☁️";
+                    
+                    document.getElementById('weather-text').textContent = `Hermosillo: ${currentTemp}°C, Humedad: ${currentHumidity}%`;
+                    document.getElementById('weather-display').querySelector('.weather-icon').textContent = icon;
+                    
+                    console.log(`Clima cargado: ${currentTemp}°C, Humedad: ${currentHumidity}%`);
+                }
+            } catch (error) {
+                document.getElementById('weather-text').textContent = "Hermosillo: Soleado 29°C";
+                console.error("Error al obtener datos meteorológicos de Hermosillo. Usando promedios locales.", error);
+            }
         }
 
-        // Arrancar la app al cargar la página
-        window.addEventListener('DOMContentLoaded', inicializarAplicacion);
+        // Recomendación del clima adaptativa para el estadio
+        function updateWeatherRecommendation(seccionId) {
+            const data = stadiumData[seccionId];
+            if (!data) return;
+
+            let tipText = "";
+            const esSeccionSol = data.exposicion_sol.toLowerCase().includes("sol");
+            const esSeccionSombra = data.exposicion_sol.toLowerCase().includes("sombra");
+
+            if (currentTemp >= 32) {
+                // Calor extremo típico en Hermosillo
+                if (esSeccionSol) {
+                    tipText = `🔥 <strong>Recomendación Climatológica (Hermosillo ${currentTemp}°C):</strong> ¡Calor intenso hoy! En esta sección recibirás el sol de frente al inicio. Es indispensable llevar bloqueador, gorra naranjera y gafas solares.`;
+                } else {
+                    tipText = `🍃 <strong>Recomendación Climatológica (Hermosillo ${currentTemp}°C):</strong> El ambiente exterior está muy cálido, pero gracias a que esta sección tiene sombra garantizada, tu experiencia será mucho más fresca y cómoda.`;
+                }
+            } else if (currentTemp <= 20) {
+                // Tarde/Noche fresca de invierno en el desierto
+                tipText = `🧥 <strong>Recomendación Climatológica (Hermosillo ${currentTemp}°C):</strong> Corre viento fresco en la tribuna por la noche desértica. Se recomienda llevar chamarra ligera de los Naranjeros.`;
+            } else {
+                // Clima agradable templado
+                tipText = `⚾ <strong>Recomendación Climatológica (Hermosillo ${currentTemp}°C):</strong> Clima perfecto para béisbol. Temperatura ideal de ${currentTemp}°C con ${currentHumidity}% de humedad. ¡Disfruta el partido!`;
+            }
+
+            weatherRecommendation.innerHTML = tipText;
+        }
+
+        // ==========================================
+        // 5. ACCIONES Y CONTROLADORES
+        // ==========================================
+        function selectSection(id) {
+            const cleanId = id.startsWith('sec-') ? id : 'sec-' + id;
+            const data = stadiumData[cleanId];
+            
+            sections.forEach(s => s.classList.remove('activo'));
+            
+            const targetPolygon = document.getElementById(cleanId);
+            if (targetPolygon) {
+                targetPolygon.classList.add('activo');
+            }
+
+            if (data) {
+                welcomeMessage.style.display = 'none';
+                dataCard.style.display = 'block';
+                
+                cardTitle.textContent = data.nombre;
+                cardImage.src = data.imagen_url;
+                cardCapacity.textContent = "Aforo: " + data.capacidad_aprox;
+                cardSun.textContent = data.exposicion_sol;
+                cardDescription.textContent = data.descripcion_vista;
+                
+                updateWeatherRecommendation(cleanId);
+            }
+        }
+
+        // Eventos sobre Polígonos SVG
+        sections.forEach(sec => {
+            sec.addEventListener('click', function() {
+                const sectionId = this.getAttribute('id');
+                selectSection(sectionId);
+            });
+        });
+
+        // Evento Buscador
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            if (query === '') {
+                resetView();
+                return;
+            }
+
+            sections.forEach(sec => {
+                const secId = sec.getAttribute('id').replace('sec-', '').toLowerCase();
+                if (secId === query || secId.includes(query)) {
+                    selectSection(sec.getAttribute('id'));
+                }
+            });
+        });
+
+        clearBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            resetView();
+        });
+
+        function resetView() {
+            sections.forEach(s => s.classList.remove('activo'));
+            dataCard.style.display = 'none';
+            welcomeMessage.style.display = 'block';
+        }
+
+        // Inicialización de arranque
+        window.addEventListener('DOMContentLoaded', async () => {
+            await fetchHermosilloWeather();
+            await loadGoogleSheetsData();
+        });
     </script>
 </body>
 </html>
