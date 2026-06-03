@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vista Estadio Fernando Valenzuela</title>
+    <title>Vista Estadio Fernando Valenzuela (Dynamic)</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -52,7 +52,7 @@
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             overflow: hidden;
-            display: none; /* Oculto hasta que se haga clic */
+            display: none; 
         }
         .tarjeta img {
             width: 100%;
@@ -74,18 +74,24 @@
             border-radius: 20px;
             font-size: 0.85rem;
             margin-bottom: 15px;
+            margin-right: 5px;
         }
         #mensaje-inicial {
             text-align: center;
             color: #7f8c8d;
             margin-top: 50px;
         }
+        /* Estado de carga */
+        .cargando {
+            opacity: 0.5;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
     <div class="contenedor">
-        <div class="seccion-mapa">
+        <div class="seccion-mapa id="mapa-bloque" class="cargando">
             <h3>Selecciona una zona:</h3>
             <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
                 <path d="M300,350 L200,250 L300,150 L400,250 Z" fill="#27ae60" />
@@ -100,16 +106,16 @@
 
         <div class="seccion-info">
             <div id="mensaje-inicial">
-                <h2>Haz clic en una sección del mapa</h2>
-                <p>La vista desde el asiento aparecerá aquí.</p>
+                <h2>Cargando datos del estadio...</h2>
+                <p>Por favor espera un momento.</p>
             </div>
 
             <div id="tarjeta-info" class="tarjeta">
                 <img id="info-imagen" src="" alt="Vista desde el asiento">
                 <div class="tarjeta-contenido">
                     <h2 id="info-nombre">Nombre de la sección</h2>
-                    <span class="etiqueta" id="info-capacidad">Capacidad: 0</span>
-                    <span class="etiqueta" id="info-sol">Sol</span>
+                    <span class="etiqueta" id="info-capacidad">Capacidad: --</span>
+                    <span class="etiqueta" id="info-sol">Sol: --</span>
                     <p id="info-descripcion">Descripción de la vista irá aquí.</p>
                 </div>
             </div>
@@ -117,72 +123,124 @@
     </div>
 
     <script>
-        // 1. Nuestra Base de Datos (JSON)
-        const baseDeDatos = {
-            "sec-central": {
-                "nombre": "Palco Central",
-                "capacidad_aprox": "1,500 personas",
-                "exposicion_sol": "Sombra casi todo el juego ⛅",
-                "imagen_url": "https://placehold.co/600x400/d35400/white?text=Vista+Palco+Central",
-                "descripcion_vista": "Vista inmejorable justo detrás del home plate. Ideal para ver los pitcheos de los Naranjeros."
-            },
-            "sec-bleachers": {
-                "nombre": "Bleachers (Jardines)",
-                "capacidad_aprox": "3,000 personas",
-                "exposicion_sol": "Sol directo de tarde ☀️",
-                "imagen_url": "https://placehold.co/600x400/e74c3c/white?text=Vista+Bleachers",
-                "descripcion_vista": "Ambiente de fiesta, ideal para atrapar home runs. Te recomendamos llevar gorra y bloqueador."
-            },
-            "sec-lateral-primera": {
-                "nombre": "Lateral 1ra Base",
-                "capacidad_aprox": "2,000 personas",
-                "exposicion_sol": "Sombra después de las 6 PM 🌤️",
-                "imagen_url": "https://placehold.co/600x400/9b59b6/white?text=Vista+Lateral+1ra",
-                "descripcion_vista": "Excelente vista de las jugadas en primera base y justo detrás del dugout."
-            }
-        };
+        // ==========================================
+        // CONFIGURACIÓN: PEGA AQUÍ TU ENLACE CSV
+        // ==========================================
+        const URL_HOJA_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ-mcbGirsiy1FulMFbt0sb03gzEFM6dkQRdo74GDqyGXwxCHSFwlJMJC2J_I8LVmLcUieicru1OiFA/pub?gid=0&single=true&output=csv';
 
-        // 2. Referencias a los elementos del HTML (DOM)
+        let baseDeDatos = {};
+
+        // Referencias a elementos del DOM
+        const mapaBloque = document.getElementById('mapa-bloque');
         const zonasEstadio = document.querySelectorAll('.seccion-estadio');
         const tarjetaInfo = document.getElementById('tarjeta-info');
         const mensajeInicial = document.getElementById('mensaje-inicial');
         
-        // Elementos a actualizar dentro de la tarjeta
         const uiNombre = document.getElementById('info-nombre');
         const uiImagen = document.getElementById('info-imagen');
         const uiCapacidad = document.getElementById('info-capacidad');
         const uiSol = document.getElementById('info-sol');
         const uiDescripcion = document.getElementById('info-descripcion');
 
-        // 3. Agregar evento de clic a cada zona del mapa
-        zonasEstadio.forEach(zona => {
-            zona.addEventListener('click', function() {
-                // Quitar clase 'activo' de todas las zonas
-                zonasEstadio.forEach(z => z.classList.remove('activo'));
-                
-                // Agregar clase 'activo' a la zona clicada
-                this.classList.add('activo');
+        // Función robusta para procesar el texto CSV respetando comillas
+        function procesarCSV(texto) {
+            const lineas = [];
+            let fila = [""];
+            let dentroDeComillas = false;
 
-                // Obtener el ID de la zona clicada
-                const idZona = this.getAttribute('id');
-                
-                // Buscar los datos en nuestro JSON usando el ID
-                const datos = baseDeDatos[idZona];
+            for (let i = 0; i < texto.length; i++) {
+                const caracter = texto[i];
+                const siguiente = texto[i + 1];
 
-                if (datos) {
-                    // Ocultar mensaje inicial y mostrar la tarjeta
-                    mensajeInicial.style.display = 'none';
-                    tarjetaInfo.style.display = 'block';
-
-                    // Actualizar el HTML con los datos del JSON
-                    uiNombre.textContent = datos.nombre;
-                    uiImagen.src = datos.imagen_url;
-                    uiCapacidad.textContent = "Aforo: " + datos.capacidad_aprox;
-                    uiSol.textContent = datos.exposicion_sol;
-                    uiDescripcion.textContent = datos.descripcion_vista;
+                if (caracter === '"') {
+                    if (dentroDeComillas && siguiente === '"') {
+                        fila[fila.length - 1] += '"';
+                        i++; 
+                    } else {
+                        dentroDeComillas = !dentroDeComillas;
+                    }
+                } else if (caracter === ',' && !dentroDeComillas) {
+                    fila.push('');
+                } else if ((caracter === '\r' || caracter === '\n') && !dentroDeComillas) {
+                    if (caracter === '\r' && siguiente === '\n') { i++; }
+                    lineas.push(fila);
+                    fila = [''];
+                } else {
+                    fila[fila.length - 1] += caracter;
                 }
+            }
+            if (fila.length > 1 || fila[0] !== '') { lineas.push(fila); }
+            
+            const resultado = {};
+            if (lineas.length < 2) return resultado;
+
+            // Omitimos la fila 0 (encabezados) y recorremos los registros
+            for (let i = 1; i < lineas.length; i++) {
+                const r = lineas[i];
+                if (r.length < 6) continue; // Ignora líneas incompletas
+                
+                const idZona = r[0].trim();
+                resultado[idZona] = {
+                    nombre: r[1],
+                    capacidad_aprox: r[2],
+                    exposicion_sol: r[3],
+                    imagen_url: r[4],
+                    descripcion_vista: r[5]
+                };
+            }
+            return resultado;
+        }
+
+        // Conexión asíncrona con la "API" de Google Sheets
+        async function inicializarAplicacion() {
+            try {
+                const respuesta = await fetch(URL_HOJA_CSV);
+                if (!respuesta.ok) throw new Error("Error en la descarga de datos");
+                
+                const textoCSV = await respuesta.text();
+                baseDeDatos = procesarCSV(textoCSV);
+
+                // Cambiar el mensaje inicial tras una carga exitosa
+                mensajeInicial.innerHTML = `<h2>Haz clic en una sección del mapa</h2><p>La vista desde el asiento aparecerá aquí.</p>`;
+                mapaBloque.classList.remove('cargando');
+
+                // Habilitar los eventos de clic
+                configurarEventosMapa();
+            } catch (error) {
+                console.error("Detalles del error:", error);
+                mensajeInicial.innerHTML = `<h2 style="color: #c0392b;">Error de conexión</h2><p>No se pudieron obtener los datos desde Google Sheets. Revisa la configuración de uso compartido.</p>`;
+            }
+        }
+
+        // Lógica de interactividad del mapa
+        function configurarEventosMapa() {
+            zonasEstadio.forEach(zona => {
+                zona.addEventListener('click', function() {
+                    zonasEstadio.forEach(z => z.classList.remove('activo'));
+                    this.classList.add('activo');
+
+                    const idZona = this.getAttribute('id');
+                    const datos = baseDeDatos[idZona];
+
+                    if (datos) {
+                        mensajeInicial.style.display = 'none';
+                        tarjetaInfo.style.display = 'block';
+
+                        uiNombre.textContent = datos.nombre;
+                        uiImagen.src = datos.imagen_url || 'https://placehold.co/600x400?text=Sin+Imagen';
+                        uiImagen.alt = "Vista desde " + datos.nombre;
+                        uiCapacidad.textContent = "Aforo: " + datos.capacidad_aprox;
+                        uiSol.textContent = "Sol: " + datos.exposicion_sol;
+                        uiDescripcion.textContent = datos.descripcion_vista;
+                    } else {
+                        console.warn(`No se encontraron datos en el CSV para el id_zona: "${idZona}"`);
+                    }
+                });
             });
-        });
+        }
+
+        // Arrancar la app al cargar la página
+        window.addEventListener('DOMContentLoaded', inicializarAplicacion);
     </script>
 </body>
 </html>
