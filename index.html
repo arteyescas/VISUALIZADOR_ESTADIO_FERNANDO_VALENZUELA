@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vista Estadio Fernando Valenzuela</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .contenedor {
+            display: flex;
+            gap: 40px;
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        /* Estilos del Mapa */
+        .seccion-mapa {
+            flex: 1;
+        }
+        .seccion-estadio {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        .seccion-estadio:hover {
+            fill: #F39C12; /* Color Naranjero al pasar el ratón */
+            opacity: 0.8;
+        }
+        .activo {
+            fill: #E67E22 !important;
+            stroke: #333;
+        }
+        /* Estilos de la Tarjeta de Información */
+        .seccion-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .tarjeta {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none; /* Oculto hasta que se haga clic */
+        }
+        .tarjeta img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            background-color: #eee;
+        }
+        .tarjeta-contenido {
+            padding: 20px;
+        }
+        .tarjeta h2 {
+            margin: 0 0 10px 0;
+            color: #d35400;
+        }
+        .etiqueta {
+            display: inline-block;
+            background: #eee;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+        #mensaje-inicial {
+            text-align: center;
+            color: #7f8c8d;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor">
+        <div class="seccion-mapa">
+            <h3>Selecciona una zona:</h3>
+            <svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+                <path d="M300,350 L200,250 L300,150 L400,250 Z" fill="#27ae60" />
+                <path d="M300,150 Q350,100 450,200 L400,250 Z" fill="#2ecc71" />
+                <path d="M300,150 Q250,100 150,200 L200,250 Z" fill="#2ecc71" />
+                
+                <path id="sec-central" d="M260,370 L340,370 Q370,390 400,380 L200,380 Q230,390 260,370 Z" fill="#3498db" class="seccion-estadio" />
+                <path id="sec-lateral-primera" d="M420,270 L480,210 L510,240 L450,300 Z" fill="#9b59b6" class="seccion-estadio" />
+                <path id="sec-bleachers" d="M220,100 Q300,50 380,100 L420,60 Q300,0 180,60 Z" fill="#e74c3c" class="seccion-estadio" />
+            </svg>
+        </div>
+
+        <div class="seccion-info">
+            <div id="mensaje-inicial">
+                <h2>Haz clic en una sección del mapa</h2>
+                <p>La vista desde el asiento aparecerá aquí.</p>
+            </div>
+
+            <div id="tarjeta-info" class="tarjeta">
+                <img id="info-imagen" src="" alt="Vista desde el asiento">
+                <div class="tarjeta-contenido">
+                    <h2 id="info-nombre">Nombre de la sección</h2>
+                    <span class="etiqueta" id="info-capacidad">Capacidad: 0</span>
+                    <span class="etiqueta" id="info-sol">Sol</span>
+                    <p id="info-descripcion">Descripción de la vista irá aquí.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Nuestra Base de Datos (JSON)
+        const baseDeDatos = {
+            "sec-central": {
+                "nombre": "Palco Central",
+                "capacidad_aprox": "1,500 personas",
+                "exposicion_sol": "Sombra casi todo el juego ⛅",
+                "imagen_url": "https://placehold.co/600x400/d35400/white?text=Vista+Palco+Central",
+                "descripcion_vista": "Vista inmejorable justo detrás del home plate. Ideal para ver los pitcheos de los Naranjeros."
+            },
+            "sec-bleachers": {
+                "nombre": "Bleachers (Jardines)",
+                "capacidad_aprox": "3,000 personas",
+                "exposicion_sol": "Sol directo de tarde ☀️",
+                "imagen_url": "https://placehold.co/600x400/e74c3c/white?text=Vista+Bleachers",
+                "descripcion_vista": "Ambiente de fiesta, ideal para atrapar home runs. Te recomendamos llevar gorra y bloqueador."
+            },
+            "sec-lateral-primera": {
+                "nombre": "Lateral 1ra Base",
+                "capacidad_aprox": "2,000 personas",
+                "exposicion_sol": "Sombra después de las 6 PM 🌤️",
+                "imagen_url": "https://placehold.co/600x400/9b59b6/white?text=Vista+Lateral+1ra",
+                "descripcion_vista": "Excelente vista de las jugadas en primera base y justo detrás del dugout."
+            }
+        };
+
+        // 2. Referencias a los elementos del HTML (DOM)
+        const zonasEstadio = document.querySelectorAll('.seccion-estadio');
+        const tarjetaInfo = document.getElementById('tarjeta-info');
+        const mensajeInicial = document.getElementById('mensaje-inicial');
+        
+        // Elementos a actualizar dentro de la tarjeta
+        const uiNombre = document.getElementById('info-nombre');
+        const uiImagen = document.getElementById('info-imagen');
+        const uiCapacidad = document.getElementById('info-capacidad');
+        const uiSol = document.getElementById('info-sol');
+        const uiDescripcion = document.getElementById('info-descripcion');
+
+        // 3. Agregar evento de clic a cada zona del mapa
+        zonasEstadio.forEach(zona => {
+            zona.addEventListener('click', function() {
+                // Quitar clase 'activo' de todas las zonas
+                zonasEstadio.forEach(z => z.classList.remove('activo'));
+                
+                // Agregar clase 'activo' a la zona clicada
+                this.classList.add('activo');
+
+                // Obtener el ID de la zona clicada
+                const idZona = this.getAttribute('id');
+                
+                // Buscar los datos en nuestro JSON usando el ID
+                const datos = baseDeDatos[idZona];
+
+                if (datos) {
+                    // Ocultar mensaje inicial y mostrar la tarjeta
+                    mensajeInicial.style.display = 'none';
+                    tarjetaInfo.style.display = 'block';
+
+                    // Actualizar el HTML con los datos del JSON
+                    uiNombre.textContent = datos.nombre;
+                    uiImagen.src = datos.imagen_url;
+                    uiCapacidad.textContent = "Aforo: " + datos.capacidad_aprox;
+                    uiSol.textContent = datos.exposicion_sol;
+                    uiDescripcion.textContent = datos.descripcion_vista;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
